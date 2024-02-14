@@ -1,6 +1,3 @@
-import numpy as np
-
-# creating first function
 def print_board(board):
     for row in board:
         print(" | ".join(row))
