@@ -1,3 +1,3 @@
 import numpy as np
 
-# Creating 
+# creating first function
