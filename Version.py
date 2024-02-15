@@ -18,6 +18,8 @@ def print_board(board):
         print(" | ".join(board[i:i+3]))
         if i < 6:
             print("---------")
+board = [EMPTY] * 9
+print_board(board)
 
 # Function for player input
 def player_input(board):
