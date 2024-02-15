@@ -1,77 +1,94 @@
-import streamlit as st
-import matplotlib.pyplot as plt
-import numpy as np
-import ipywidgets as widgets
+import pygame
+import sys
 
-# Initialize game board
-if 'board' not in st.session_state:
-    st.session_state.board = [['' for _ in range(3)] for _ in range(3)]
-if 'turn' not in st.session_state:
-    st.session_state.turn = 'X'
-if 'winner' not in st.session_state:
-    st.session_state.winner = None
+# Initialize Pygame
+pygame.init()
+
+# Constants
+WIDTH, HEIGHT = 300, 300
+LINE_WIDTH = 5
+BOARD_ROWS, BOARD_COLS = 3, 3
+SQUARE_SIZE = WIDTH // BOARD_COLS
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+
+# Initialize the window
+window = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Tic Tac Toe")
+
+# Initialize the game variables
+board = [['' for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
+turn = 'X'
+winner = None
+
+# Function to draw the game board
+def draw_board():
+    window.fill(WHITE)
+    # Draw horizontal lines
+    for i in range(1, BOARD_ROWS):
+        pygame.draw.line(window, BLACK, (0, i * SQUARE_SIZE), (WIDTH, i * SQUARE_SIZE), LINE_WIDTH)
+    # Draw vertical lines
+    for j in range(1, BOARD_COLS):
+        pygame.draw.line(window, BLACK, (j * SQUARE_SIZE, 0), (j * SQUARE_SIZE, HEIGHT), LINE_WIDTH)
+
+# Function to draw X or O on the board
+def draw_moves():
+    for row in range(BOARD_ROWS):
+        for col in range(BOARD_COLS):
+            if board[row][col] == 'X':
+                pygame.draw.line(window, RED, (col * SQUARE_SIZE + SQUARE_SIZE // 4, row * SQUARE_SIZE + SQUARE_SIZE // 4), 
+                                 ((col + 1) * SQUARE_SIZE - SQUARE_SIZE // 4, (row + 1) * SQUARE_SIZE - SQUARE_SIZE // 4), LINE_WIDTH)
+                pygame.draw.line(window, RED, ((col + 1) * SQUARE_SIZE - SQUARE_SIZE // 4, row * SQUARE_SIZE + SQUARE_SIZE // 4), 
+                                 (col * SQUARE_SIZE + SQUARE_SIZE // 4, (row + 1) * SQUARE_SIZE - SQUARE_SIZE // 4), LINE_WIDTH)
+            elif board[row][col] == 'O':
+                pygame.draw.circle(window, BLUE, (col * SQUARE_SIZE + SQUARE_SIZE // 2, row * SQUARE_SIZE + SQUARE_SIZE // 2), SQUARE_SIZE // 4, LINE_WIDTH)
 
 # Function to check for a win or a tie
-def check_winner(board):
-    for i in range(3):
-        if board[i][0] == board[i][1] == board[i][2] != '':
-            return board[i][0]
-        if board[0][i] == board[1][i] == board[2][i] != '':
-            return board[0][i]
-    if board[0][0] == board[1][1] == board[2][2] != '' or board[0][2] == board[1][1] == board[2][0] != '':
-        return board[1][1]
-    if all(board[row][col] != '' for row in range(3) for col in range(3)):
-        return 'Tie'
-    return None
+def check_winner():
+    global winner
+    # Check rows
+    for row in range(BOARD_ROWS):
+        if board[row][0] == board[row][1] == board[row][2] != '':
+            winner = board[row][0]
+            return True
+    # Check columns
+    for col in range(BOARD_COLS):
+        if board[0][col] == board[1][col] == board[2][col] != '':
+            winner = board[0][col]
+            return True
+    # Check diagonals
+    if board[0][0] == board[1][1] == board[2][2] != '':
+        winner = board[0][0]
+        return True
+    if board[0][2] == board[1][1] == board[2][0] != '':
+        winner = board[0][2]
+        return True
+    # Check for tie
+    if all(board[row][col] != '' for row in range(BOARD_ROWS) for col in range(BOARD_COLS)):
+        winner = 'Tie'
+        return True
+    return False
 
-# Function to draw the Tic Tac Toe board with Matplotlib
-def draw_board(board):
-    fig, ax = plt.subplots(figsize=(5,5))
-    ax.set_xlim(0, 3)
-    ax.set_ylim(0, 3)
-    plt.xticks([])
-    plt.yticks([])
+# Main game loop
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.MOUSEBUTTONDOWN and not winner:
+            x, y = pygame.mouse.get_pos()
+            row = y // SQUARE_SIZE
+            col = x // SQUARE_SIZE
+            if board[row][col] == '':
+                board[row][col] = turn
+                turn = 'O' if turn == 'X' else 'X'
+                if check_winner():
+                    print(f"Winner: {winner}")
     
-    for i in range(1, 3):
-        plt.plot([i, i], [0, 3], 'k-', linewidth=2)
-        plt.plot([0, 3], [i, i], 'k-', linewidth=2)
-    
-    for i in range(3):
-        for j in range(3):
-            if board[i][j] == 'X':
-                ax.text(j + 0.5, 2.5 - i + 0.5, 'X', fontsize=40, ha='center', va='center')
-            elif board[i][j] == 'O':
-                ax.text(j + 0.5, 2.5 - i + 0.5, 'O', fontsize=40, ha='center', va='center')
-    
-    return fig
+    draw_board()
+    draw_moves()
+    pygame.display.update()
 
-# Display the game board and handle player input
-def display_board():
-    winner = st.session_state.winner
-    if winner:
-        st.write(f'Winner: {winner}')
-        if st.button('Play Again'):
-            st.session_state.board = [['' for _ in range(3)] for _ in range(3)]
-            st.session_state.turn = 'X'
-            st.session_state.winner = None
-        return
-    
-    board = st.session_state.board
-    fig = draw_board(board)
-    st.pyplot(fig)
-    
-    for i in range(3):
-        for j in range(3):
-            if board[i][j] == '':
-                button = widgets.Button(description='', layout=widgets.Layout(width='100px', height='100px'))
-                button.on_click(lambda event, i=i, j=j: on_button_click(i, j))
-                st.sidebar.write(button)
-
-# Handler for button clicks
-def on_button_click(i, j):
-    if st.session_state.board[i][j] == '' and not st.session_state.winner:
-        st.session_state.board[i][j] = st.session_state.turn
-        st.session_state.turn = 'O' if st.session_state.turn == 'X' else 'X'
-        st.session_state.winner = check_winner(st.session_state.board)
-
-display_board()
+pygame.quit()
